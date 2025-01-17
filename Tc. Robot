@@ -1,0 +1,32 @@
+*** Settings ***
+Library           SeleniumLibrary
+Library           Collections
+
+*** Variables ***
+${URL}            https://www.myntra.com/
+${SEARCH_TERM}    shoes
+@{shoes_list}     []
+
+*** Test Cases ***
+Store Shoe Data in Array of Objects
+    Open Browser    ${URL}    chrome
+    Maximize Browser Window
+    Wait Until Page Contains Element    xpath=//input[@placeholder='Search']    10 seconds
+    Input Text       xpath=//input[@placeholder='Search']    ${SEARCH_TERM}
+    Press Keys       xpath=//input[@placeholder='Search']    ENTER
+    Wait Until Page Contains Element    xpath=//ul[contains(@class, 'results-base')]    10 seconds
+    Sleep            3 seconds  # Allow time for all products to load
+    ${total_items}   Get Element Count    xpath=//ul[contains(@class, 'results-base')]//li
+    Log To Console   Total products found: ${total_items}
+    FOR    ${index}    IN RANGE    1    ${total_items + 1}
+        ${name}      Get Text    xpath=(//ul[contains(@class, 'results-base')]//li)[${index}]//div[@class='product-productMetaInfo']//h4
+        ${price}     Get Text    xpath=(//ul[contains(@class, 'results-base')]//li)[${index}]//div[@class='product-price']//span
+        ${link}      Get Element Attribute    xpath=(//ul[contains(@class, 'results-base')]//li)[${index}]//a    href
+        ${ratings}   Run Keyword And Return Status    Get Text    xpath=(//ul[contains(@class, 'results-base')]//li)[${index}]//span[contains(@class, 'product-ratingsCount')]
+        ${ratings}   Run Keyword If    ${ratings}    ${ratings}    ELSE    Not Rated
+        ${shoe_obj}  Evaluate    {"name": "${name}", "price": "${price}", "link": "${link}", "ratings": "${ratings}"}
+        Append To List    ${shoes_list}    ${shoe_obj}
+        Log To Console    Shoe ${index}: ${shoe_obj}
+    END
+    Log To Console    Final List: ${shoes_list}
+    Close Browser
